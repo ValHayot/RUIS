@@ -12,5 +12,5 @@ sh launch_collectl.sh $COLLECTL_OPT $CMD
 
 Analysis of results can currently be done using the Jupyter notebook (Analysis.ipynb)
 
-
-[collectl](http://collectl.sourceforge.net/index.html)
+References:
+[Collectl](http://collectl.sourceforge.net/index.html)
