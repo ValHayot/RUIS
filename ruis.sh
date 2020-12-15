@@ -43,7 +43,7 @@ screen -S $SCREEN_RUIS -DmS bash -c "sleep 0.5;$1; screen -S $SCREEN_COLLECTL -X
 ruis_pid=$!
 
 if [[ -z ${COLLECTL_OPTIONS} ]]; then
-  COLLECTL_OPTIONS="-sCDnfM -omT --dskopts z --cpuopts z -i .1"
+  COLLECTL_OPTIONS="-sCDNfM -omT --dskopts z --cpuopts z -i .1"
 fi
 screen -S $SCREEN_COLLECTL -DmS $COLLECTL $COLLECTL_OPTIONS --sep , -P -f $WORK_DIR --procfilt P $ruis_pid &
 collectl_pid=$!
@@ -57,3 +57,9 @@ ls $WORK_DIR | xargs -I{} mv $WORK_DIR/{} $DATA_DIR/{}
 
 ls $DATA_DIR/*.gz | xargs gunzip
 ls $DATA_DIR | grep -v .csv | xargs -I{} mv $DATA_DIR/{} $DATA_DIR/{}.csv
+
+for f in $(ls $DATA_DIR)
+do
+  new_name=$(echo $f | sed 's/.*\-[0-9]*\.//')
+  mv $DATA_DIR/$f $DATA_DIR/$new_name
+done
