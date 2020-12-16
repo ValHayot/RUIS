@@ -1,14 +1,14 @@
 # Dummy Applications
 
-- [CPU test](/example-application/cpu.sh)
-- [Disk test](/example-application/disk.py)
-- [Network test](/example-application/network.sh)
+- [CPU test](cpu.sh)
+- [Disk test](disk.py)
+- [Network test](network.sh)
 
 # Neuroimaging Application
 
 Dataset used: [ADHD200/Brown](https://datasets.datalad.org/?dir=/adhd200/RawDataBIDS/Brown)
 
-Below are the commands used to generate the [example-data](/example-data)
+Below are the commands used to generate the [example-data](../example-data)
 
 ## BET (Bids App Example)
 
