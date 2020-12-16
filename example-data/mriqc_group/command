@@ -1,0 +1,1 @@
+./mriqc.sif --nprocs 24 ~/datasets/adhd200/Brown outputs_mriqc group
