@@ -19,6 +19,7 @@ fi
 # deletes the temp directory
 function cleanup {
   rm -rf "$WORK_DIR"
+  kill $collectl_pid 2> /dev/null
   echo "[INFO] Deleted temp working directory $WORK_DIR"
   echo "DONE"
 }
@@ -35,20 +36,15 @@ SCREEN_RUIS="RUIS-$UUID"
 SCREEN_COLLECTL="collectl-$UUID"
 
 COLLECTL="singularity exec ./collectl.sif collectl"
-
-# Sleep for 0.5 seconds before launching applications to allow setup time for collectl.
-# Without this the script will crash for instant return such as ls.
-echo "Executing command: $1"
-screen -S $SCREEN_RUIS -DmS bash -c "sleep 0.5;$1; screen -S $SCREEN_COLLECTL -X stuff $'\003'; exit; echo [INFO] RUIS: application is done!" &
-ruis_pid=$!
-
 if [[ -z ${COLLECTL_OPTIONS} ]]; then
   COLLECTL_OPTIONS="-sCDNfM -omT --dskopts z --cpuopts z -i .1"
 fi
-screen -S $SCREEN_COLLECTL -DmS $COLLECTL $COLLECTL_OPTIONS --sep , -P -f $WORK_DIR --procfilt P $ruis_pid &
+
+( $COLLECTL $COLLECTL_OPTIONS --sep , -P -f $WORK_DIR > /dev/null 2>&1 ) &
 collectl_pid=$!
-echo "Monitoring application..."
-wait $collectl_pid
+echo "Executing command: $1"
+eval $1
+kill $collectl_pid
 
 echo "Processing output data..."
 DATA_DIR="$PWD/data-$(uuidgen)"
@@ -63,3 +59,4 @@ do
   new_name=$(echo $f | sed 's/.*\-[0-9]*\.//')
   mv $DATA_DIR/$f $DATA_DIR/$new_name
 done
+echo $1 > $DATA_DIR/command
