@@ -37,5 +37,5 @@ This step allows the generation of a report containing:
 
 Refer to [report-example.ipynb](report-example.ipynb) for an example.
 
-References:
+## References:
 [Collectl](http://collectl.sourceforge.net/index.html)
