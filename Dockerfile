@@ -9,7 +9,6 @@ RUN : \
     && apt-get -qq install \
     curl \
     collectl \
-    screen \
     && curl -O http://master.dl.sourceforge.net/project/collectl-utils/collectl-utils-${COLLECTL_VERSION}/collectl-utils-${COLLECTL_VERSION}.src.tar.gz \
     && tar xf collectl-utils-${COLLECTL_VERSION}.src.tar.gz \
     && cd collectl-utils-${COLLECTL_VERSION} \
