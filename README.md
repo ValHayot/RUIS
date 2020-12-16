@@ -35,7 +35,7 @@ This step allows the generation of a report containing:
 - Timeseries visualisation of the application profiling.
 - Summarize the time used for CPU, Disk I/O, and Network I/O.
 
-Refer to [report-example.ipynb](/report-example.ipynb) for an example.
+Refer to [report-example.ipynb](report-example.ipynb) for an example.
 
 References:
 [Collectl](http://collectl.sourceforge.net/index.html)
