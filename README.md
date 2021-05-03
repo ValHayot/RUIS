@@ -12,6 +12,7 @@ Using RUIS is a two step process:
 To gather profiling information on your application use the following commands:
 
 ```bash
+export COLLECTL_PATH=/path/to/collectl/container
 export CMD='command arg1 arg2'
 export COLLECTL_OPT='--all --verbose --home'  # Optional
 ./ruis.sh $CMD
@@ -20,6 +21,7 @@ export COLLECTL_OPT='--all --verbose --home'  # Optional
 Or using **_inline-command_** as follow:
 
 ```bash
+export COLLECTL_PATH=/path/to/collectl/container
 export COLLECTL_OPT='--all --verbose --home'  # Optional
 ./ruis.sh 'command arg1 arg2'
 ```
@@ -38,4 +40,5 @@ This step allows the generation of a report containing:
 Refer to [report-example.ipynb](report-example.ipynb) for an example.
 
 ## References:
+
 [Collectl](http://collectl.sourceforge.net/index.html)

@@ -35,7 +35,7 @@ UUID=$(uuidgen)
 SCREEN_RUIS="RUIS-$UUID"
 SCREEN_COLLECTL="collectl-$UUID"
 
-COLLECTL="singularity exec ./collectl.sif collectl"
+COLLECTL="singularity exec ${COLLECTL_PATH} collectl"
 if [[ -z ${COLLECTL_OPTIONS} ]]; then
   COLLECTL_OPTIONS="-sCDNfM -omT --dskopts z --cpuopts z -i .1"
 fi
