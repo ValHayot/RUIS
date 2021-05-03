@@ -12,15 +12,15 @@ def timeTicks(x, pos):
     d = datetime.timedelta(microseconds=x//1000)                                                                                                                                                                                                                                          
     return str(d)
 
-def analysis(data_folder, *, MIN_CPU_TRESHOLD=10, MIN_DISK_TRESHOLD=100, MIN_NET_TRESHOLD=100):
+def analysis(data_folder, skiprows=14, *, MIN_CPU_TRESHOLD=10, MIN_DISK_TRESHOLD=100, MIN_NET_TRESHOLD=100):
     # Threshold for the timing only; the plots show all data.
     # This is to avoid calculating resource usage when noise occurs.
     
-    df_cpu = pd.read_csv(f"{data_folder}/cpu.csv", skiprows=14)
-    df_disk = pd.read_csv(f"{data_folder}/dsk.csv", skiprows=14)
-    df_net = pd.read_csv(f"{data_folder}/net.csv", skiprows=14)
-    df_numa = pd.read_csv(f"{data_folder}/numa.csv", skiprows=14)
-    df_tab = pd.read_csv(f"{data_folder}/tab.csv", skiprows=14)
+    df_cpu = pd.read_csv(f"{data_folder}/cpu.csv", skiprows=skiprows)
+    df_disk = pd.read_csv(f"{data_folder}/dsk.csv", skiprows=skiprows)
+    df_net = pd.read_csv(f"{data_folder}/net.csv", skiprows=skiprows)
+    df_numa = pd.read_csv(f"{data_folder}/numa.csv", skiprows=skiprows)
+    df_tab = pd.read_csv(f"{data_folder}/tab.csv", skiprows=skiprows)
 
     df_cpu["Timestamp"] = pd.to_datetime(df_cpu["#Date"].map(str) + "-" + df_cpu["Time"], format="%Y%m%d-%H:%M:%S.%f")
     interval_time = (df_cpu["Timestamp"][len(df_cpu)-1] - df_cpu["Timestamp"][0]) / len(df_cpu)
