@@ -1,0 +1,1 @@
+bosh exec launch --force-singularity -s zenodo.1494312 ~/first_invocation.json
