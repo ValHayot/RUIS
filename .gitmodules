@@ -1,0 +1,3 @@
+[submodule "example-data"]
+	path = example-data
+	url = git@github.com:mathdugre/ruis-example-data.git

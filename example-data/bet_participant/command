@@ -1,1 +1,0 @@
-./bids_example.sif --skip_bids_validator ~/datasets/adhd200/Brown ./outputs_bet participant
