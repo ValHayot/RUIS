@@ -12,7 +12,7 @@ def timeTicks(x, pos):
     d = datetime.timedelta(microseconds=x//1000)                                                                                                                                                                                                                                          
     return str(d)
 
-def analysis(data_folder, skiprows=14, *, MIN_CPU_TRESHOLD=10, MIN_DISK_TRESHOLD=100, MIN_NET_TRESHOLD=100):
+def analysis(data_folder, skiprows=14, *, MIN_CPU_TRESHOLD=10, MIN_DISK_TRESHOLD=100, MIN_NET_TRESHOLD=100, MIN_NFS_TRESHOLD=100):
     # Threshold for the timing only; the plots show all data.
     # This is to avoid calculating resource usage when noise occurs.
     
@@ -214,6 +214,63 @@ Parallel I/O time (seconds):
     plt.legend()
     plt.show()
 
+#######
+# NFS #
+########
+    df_tab = df_tab.set_index("Relative Timestamp")
+    df_tab = df_tab.dropna(how="all", axis=1)
+    nfs_read_col = [c for c in df_tab.columns if c.startswith("[NFS]Reads")]
+    nfs_write_col = [c for c in df_tab.columns if c.startswith("NFS]Writes")]
+    nfsIO = df_tab[nfs_read_col + nfs_write_col] * interval_seconds
+    
+    max_nfsIO_transfer = diskIO.max().max() * 1.1 / Gb
+       
+    nfs_data_read = nfsIO[nfs_read_col].sum() / Gb
+    nfs_data_write = nfsIO[nfs_write_col].sum() / Gb
+    
+    nfsIO_time = (sum([1 for row in (nfsIO >= MIN_NFS_TRESHOLD).values if any(row)]) * interval_time) / np.timedelta64(1, 's')
+    nfsIO_read_time = (sum([1 for row in (nfsIO[nfs_read_col] >= MIN_NFS_TRESHOLD).values if any(row)]) * interval_time) / np.timedelta64(1, 's')
+    nfsIO_write_time = (sum([1 for row in (nfsIO[nfs_write_col] >= MIN_NFS_TRESHOLD).values if any(row)]) * interval_time) / np.timedelta64(1, 's')
+    
+    print(f"""
+====================
+        NFS
+====================
+Data transfer (Gb):
+Read:
+{nfs_data_read.round(3).to_string().replace("KB", "GB")}
+
+Write:
+{nfs_data_write.round(3).to_string().replace("KB", "GB")}
+
+Total: {nfs_data_read.sum()+nfs_data_write.sum():0.3f}
+
+Total I/O time (seconds):
+{((nfsIO >= MIN_NFS_TRESHOLD).values.sum() * interval_time) / np.timedelta64(1, 's'):0.3f}
+
+Parallel I/O time (seconds):
+{nfsIO_time:0.3f}
+""")
+    
+    fig = plt.figure(figsize=(20,5))                                                                                                                                                                                                                                                             
+    ax = fig.add_subplot(111)
+    
+    nfs_read_serie = nfsIO[nfs_read_col].apply(lambda x: sum(x), axis=1)
+    ax.plot(df_tab.index, nfs_read_serie / Gb, label="Read")
+
+    nfs_write_serie = nfsIO[nfs_write_col].apply(lambda x: sum(x), axis=1)
+    ax.plot(df_tab.index, nfs_write_serie / Gb, label="Write")
+    
+    formatter = matplotlib.ticker.FuncFormatter(timeTicks)                                                                                                                                                                                                                         
+    ax.xaxis.set_major_formatter(formatter)
+    
+    ax.set_ylim([0, max(max_nfsIO_transfer, 0.1)])
+    plt.title("NFS data transfer")
+    plt.ylabel("Gb")
+    plt.xlabel("Time (seconds)")
+    plt.legend()
+    plt.show()
+    
 
 ###########
 # Summary #
@@ -234,6 +291,8 @@ Parallel I/O time (seconds):
         "Disk Write": diskIO_write_time,
         "Network Read": netIO_read_time,
         "Network Write": netIO_write_time,
+        "NFS Read": nfsIO_read_time,
+        "NFS Write": nfsIO_write_time,
     }
     total_time = sum([v for k, v in label_ratio.items()])
     
