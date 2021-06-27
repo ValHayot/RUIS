@@ -44,12 +44,20 @@ fi
 
 if [[ $PERFQ != "" ]]
 then
-    echo "Including infiniband profiling"
-    PROFILE_IB="$PERFQ:/bin/perfquery"
-    COLLECTL_OPTIONS="$COLLECTL_OPTIONS -sX"
+    # Check if infiniband exists
+    
+    perfquery -x
+    err=`echo $?`
+
+    if [[ $err == 0 ]]
+    then
+        echo "Including infiniband profiling"
+        PROFILE_IB="--bind $PERFQ:/bin/perfquery"
+        COLLECTL_OPTIONS="$COLLECTL_OPTIONS -sX"
+    fi
 fi
 
-COLLECTL="singularity exec --bind $DIR:$SINGWD --bind $PERFQ:/bin/perfquery --workdir $SINGWD ${COLLECTL_PATH} collectl"
+COLLECTL="singularity exec --bind $DIR:$SINGWD ${PROFILE_IB} --workdir $SINGWD ${COLLECTL_PATH} collectl"
 
 ( $COLLECTL $COLLECTL_OPTIONS --sep , -P -f "$SINGWD/$TMP" > /dev/null 2>&1 ) &
 collectl_pid=$!
