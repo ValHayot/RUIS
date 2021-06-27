@@ -9,6 +9,8 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # omit the -p parameter to create a temporal directory in the default location
 WORK_DIR=`mktemp -d -p "$DIR"`
 echo "[INFO] Created temp working directory $WORK_DIR"
+STMP=`basename "${WORK_DIR}"`
+SINGWD="/home/ruis"
 
 # check if tmp dir was created
 if [[ ! "$WORK_DIR" || ! -d "$WORK_DIR" ]]; then
@@ -34,16 +36,25 @@ trap cleanup exit
 UUID=$(uuidgen)
 SCREEN_RUIS="RUIS-$UUID"
 SCREEN_COLLECTL="collectl-$UUID"
+PERFQ=`readlink -f $(which perfquery)`
 
-COLLECTL="singularity exec ${COLLECTL_PATH} collectl"
 if [[ -z ${COLLECTL_OPTIONS} ]]; then
   COLLECTL_OPTIONS="-sCDNfM -omT --dskopts z --cpuopts z -i .1"
 fi
 
-( $COLLECTL $COLLECTL_OPTIONS --sep , -P -f $WORK_DIR > /dev/null 2>&1 ) &
+if [[ $PERFQ != "" ]]
+then
+    echo "Including infiniband profiling"
+    PROFILE_IB="$PERFQ:/bin/perfquery"
+    COLLECTL_OPTIONS="$COLLECTL_OPTIONS -sX"
+fi
+
+COLLECTL="singularity exec --bind $DIR:$SINGWD --bind $PERFQ:/bin/perfquery --workdir $SINGWD ${COLLECTL_PATH} collectl"
+
+( $COLLECTL $COLLECTL_OPTIONS --sep , -P -f "$SINGWD/$TMP" > /dev/null 2>&1 ) &
 collectl_pid=$!
-echo "Executing command: $1"
-eval $1
+echo "Executing command: $@"
+eval $@
 kill $collectl_pid
 
 echo "Processing output data..."
