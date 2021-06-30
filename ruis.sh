@@ -9,8 +9,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # omit the -p parameter to create a temporal directory in the default location
 WORK_DIR=`mktemp -d -p "$DIR"`
 echo "[INFO] Created temp working directory $WORK_DIR"
-STMP=`basename "${WORK_DIR}"`
-SINGWD="/home/ruis"
 
 # check if tmp dir was created
 if [[ ! "$WORK_DIR" || ! -d "$WORK_DIR" ]]; then
@@ -57,9 +55,7 @@ then
     fi
 fi
 
-COLLECTL="singularity exec --bind $DIR:$SINGWD ${PROFILE_IB} --workdir $SINGWD ${COLLECTL_PATH} collectl"
-
-( $COLLECTL $COLLECTL_OPTIONS --sep , -P -f "$SINGWD/$TMP" > /dev/null 2>&1 ) &
+( collectl $COLLECTL_OPTIONS --sep , -P -f "$SINGWD/$TMP" > /dev/null 2>&1 ) &
 collectl_pid=$!
 echo "Executing command: $@"
 eval $@
