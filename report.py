@@ -8,11 +8,17 @@ import pandas as pd
 
 pd.set_option('display.float_format', lambda x: '%.3f' % x)
 
+df2_cpu = None
+df2_disk = None
+df2_net = None
+df2_numa = None
+df2_tab = None
+
 def timeTicks(x, pos):                                                                                                                                                                                                                                                         
     d = datetime.timedelta(microseconds=x//1000)                                                                                                                                                                                                                                          
     return str(d)
 
-def analysis(data_folder, skiprows=14, *, MIN_CPU_TRESHOLD=10, MIN_DISK_TRESHOLD=100, MIN_NET_TRESHOLD=100, MIN_NFS_TRESHOLD=100):
+def analysis(data_folder, skiprows=14, *, MIN_CPU_TRESHOLD=10, MIN_DISK_TRESHOLD=100, MIN_NET_TRESHOLD=100, MIN_NFS_TRESHOLD=100, data_folder2=None, skiprows2=14):
     # Threshold for the timing only; the plots show all data.
     # This is to avoid calculating resource usage when noise occurs.
     
@@ -31,6 +37,23 @@ def analysis(data_folder, skiprows=14, *, MIN_CPU_TRESHOLD=10, MIN_DISK_TRESHOLD
     df_numa["Relative Timestamp"] = df_numa.index * interval_time
     df_tab["Relative Timestamp"] = df_tab.index * interval_time
     
+    if data_folder2 is not None:
+        df2_cpu = pd.read_csv(f"{data_folder2}/cpu.csv", skiprows=skiprows2)
+        df2_disk = pd.read_csv(f"{data_folder2}/dsk.csv", skiprows=skiprows2)
+        df2_net = pd.read_csv(f"{data_folder2}/net.csv", skiprows=skiprows2)
+        df2_numa = pd.read_csv(f"{data_folder2}/numa.csv", skiprows=skiprows2)
+        df2_tab = pd.read_csv(f"{data_folder2}/tab.csv", skiprows=skiprows2)
+
+        df2_cpu["Timestamp"] = pd.to_datetime(df2_cpu["#Date"].map(str) + "-" + df2_cpu["Time"], format="%Y%m%d-%H:%M:%S.%f")
+        interval2_time = (df2_cpu["Timestamp"][len(df2_cpu)-1] - df2_cpu["Timestamp"][0]) / len(df2_cpu)
+        interval2_seconds = interval2_time / np.timedelta64(1, 's')
+        df2_cpu["Relative Timestamp"] = df2_cpu.index * interval_time
+        df2_disk["Relative Timestamp"] = df2_disk.index * interval_time
+        df2_net["Relative Timestamp"] = df2_net.index * interval_time
+        df2_numa["Relative Timestamp"] = df2_numa.index * interval_time
+        df2_tab["Relative Timestamp"] = df2_tab.index * interval_time
+
+
     Gb = 1024 ** 2
 
 ########
@@ -42,6 +65,13 @@ def analysis(data_folder, skiprows=14, *, MIN_CPU_TRESHOLD=10, MIN_DISK_TRESHOLD
     total_cpu = total_cpu.set_index("Relative Timestamp")
     
     cpu_time = (sum([1 for row in (total_cpu >= MIN_CPU_TRESHOLD).values if any(row)]) * interval_time) / np.timedelta64(1, 's')
+
+    if data_folder2 is not None:
+        total2_cpu = df2_cpu[["Relative Timestamp"] + list(map(lambda x: x+"Totl%", cpus))]
+        total2_cpu = total2_cpu.set_index("Relative Timestamp")
+        
+        cpu2_time = (sum([1 for row in (total2_cpu >= MIN_CPU_TRESHOLD).values if any(row)]) * interval2_time) / np.timedelta64(1, 's')
+
 
     print(f"""
 ====================
@@ -60,16 +90,42 @@ Makes span (seconds):
 {(df_cpu["Timestamp"][len(df_cpu["Timestamp"])-1] - df_cpu["Timestamp"][0]) / np.timedelta64(1, 's'):0.3f}
 
 """)
-    fig = plt.figure(figsize=(20,5))                                                                                                                                                                                                                                                             
+
+    if data_folder2 is not None:
+
+        print(f"""
+===================================
+    CPU Analysis for second file
+===================================
+Total CPU core:
+{n_cpu}
+
+Total CPU time (seconds):
+{((total2_cpu >= MIN_CPU_TRESHOLD).values.sum() * interval2_time) / np.timedelta64(1, 's'):0.3f}
+
+Parallel CPU time (seconds):
+{cpu2_time:0.3f}
+
+Makes span (seconds):
+{(df2_cpu["Timestamp"][len(df2_cpu["Timestamp"])-1] - df2_cpu["Timestamp"][0]) / np.timedelta64(1, 's'):0.3f}
+
+    """)
+    fig = plt.figure(figsize=(20,5))
     ax = fig.add_subplot(111)
     cpu_avg = total_cpu[total_cpu.columns].apply(lambda x: sum(x)/len(total_cpu.columns), axis=1)
-    ax.plot(total_cpu.index, cpu_avg)
-    formatter = matplotlib.ticker.FuncFormatter(timeTicks)                                                                                                                                                                                                                         
+
+    ax.plot(total_cpu.index, cpu_avg, label="sea")
+
+    if data_folder2 is not None:
+        cpu2_avg = total2_cpu[total2_cpu.columns].apply(lambda x: sum(x)/len(total2_cpu.columns), axis=1)
+        ax.plot(total2_cpu.index, cpu2_avg, label="default")
+    formatter = matplotlib.ticker.FuncFormatter(timeTicks)
     ax.xaxis.set_major_formatter(formatter)
     ax.set_ylim([0, 110])
     plt.title("CPU usage")
     plt.ylabel("Average load (%)")
     plt.xlabel("Time (seconds)")
+    plt.legend()
     plt.show()
 
     
@@ -193,15 +249,14 @@ Parallel I/O time (seconds):
     Memory Usage
 ====================
 """)
-    
-    max_memory = int((df_numa["[NUMA:0]Used"] + df_numa["[NUMA:0]Free"]).mean()) / Gb
+    max_memory = int(df_numa.filter(regex="NUMA:.*(Free|Used)").sum(axis=1).mean()) / Gb
     
     fig = plt.figure(figsize=(20,5))                                                                                                                                                                                                                                                             
     ax = fig.add_subplot(111)
     
     ax.axhline(max_memory, color="red", label="Total Memory")
-    ax.plot(df_numa["Relative Timestamp"], df_numa["[NUMA:0]Used"] / Gb, label="Used")
-    ax.plot(df_numa["Relative Timestamp"], df_numa["[NUMA:0]Free"] / Gb, label="Free")
+    ax.plot(df_numa["Relative Timestamp"], df_numa.filter(regex="NUMA:.*Used").abs().sum(axis=1) / Gb, label="Used")
+    ax.plot(df_numa["Relative Timestamp"], df_numa.filter(regex="NUMA:.*Free").abs().sum(axis=1) / Gb, label="Free")
     
     formatter = matplotlib.ticker.FuncFormatter(timeTicks)                                                                                                                                                                                                                         
     ax.xaxis.set_major_formatter(formatter)
@@ -270,6 +325,59 @@ Parallel I/O time (seconds):
     plt.xlabel("Time (seconds)")
     plt.legend()
     plt.show()
+
+#######
+# Infiniband/Lustre #
+########
+    in_read_col = [c for c in df_tab.columns if c.startswith("[IB]InKB")]
+    in_write_col = [c for c in df_tab.columns if c.startswith("[IB]OutKB")]
+    inIO = df_tab[in_read_col + in_write_col] * interval_seconds
+    
+    in_data_read = inIO[in_read_col].sum() / Gb
+    in_data_write = inIO[in_write_col].sum() / Gb
+    
+    inIO_time = (sum([1 for row in (inIO >= MIN_NFS_TRESHOLD).values if any(row)]) * interval_time) / np.timedelta64(1, 's')
+    inIO_read_time = (sum([1 for row in (inIO[in_read_col] >= MIN_NFS_TRESHOLD).values if any(row)]) * interval_time) / np.timedelta64(1, 's')
+    inIO_write_time = (sum([1 for row in (inIO[in_write_col] >= MIN_NFS_TRESHOLD).values if any(row)]) * interval_time) / np.timedelta64(1, 's')
+    
+    print(f"""
+====================
+ INFINIBAND/LUSTRE
+====================
+Data transfer (Gb):
+Read:
+{in_data_read.round(3).to_string().replace("KB", "GB")}
+
+Write:
+{in_data_write.round(3).to_string().replace("KB", "GB")}
+
+Total: {in_data_read.sum()+in_data_write.sum():0.3f}
+
+Total I/O time (seconds):
+{((inIO >= MIN_NFS_TRESHOLD).values.sum() * interval_time) / np.timedelta64(1, 's'):0.3f}
+
+Parallel I/O time (seconds):
+{inIO_time:0.3f}
+""")
+    
+    fig = plt.figure(figsize=(20,5))                                                                                                                                                                                                                                                             
+    ax = fig.add_subplot(111)
+    
+    in_read_serie = inIO[in_read_col].apply(lambda x: sum(x), axis=1)
+    ax.plot(df_tab.index, in_read_serie / Gb, label="Read")
+
+    in_write_serie = inIO[in_write_col].apply(lambda x: sum(x), axis=1)
+    ax.plot(df_tab.index, in_write_serie / Gb, label="Write")
+    
+    formatter = matplotlib.ticker.FuncFormatter(timeTicks)                                                                                                                                                                                                                         
+    ax.xaxis.set_major_formatter(formatter)
+    
+    ax.set_ylim([0, max(max_nfsIO_transfer, 0.1)])
+    plt.title("Infiniband data transfer")
+    plt.ylabel("Gb")
+    plt.xlabel("Time (seconds)")
+    plt.legend()
+    plt.show()
     
 
 ###########
@@ -293,11 +401,13 @@ Parallel I/O time (seconds):
         "Network Write": netIO_write_time,
         "NFS Read": nfsIO_read_time,
         "NFS Write": nfsIO_write_time,
+        "Infiniband Read": inIO_read_time,
+        "Infiniband Write": inIO_write_time,
     }
     total_time = sum([v for k, v in label_ratio.items()])
     
     for label, ratio in label_ratio.items():
-        if ratio < total_time * 0.1:  # If less than 5% put in 'other' category
+        if ratio <= total_time * 0.0:  # If less than 5% put in 'other' category
             other += ratio
         else:
             donut_ratios.append(ratio)
