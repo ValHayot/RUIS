@@ -34,7 +34,7 @@ trap cleanup exit
 UUID=$(uuidgen)
 SCREEN_RUIS="RUIS-$UUID"
 SCREEN_COLLECTL="collectl-$UUID"
-PERFQ=`readlink -f $(which perfquery)`
+PERFQ=`readlink -f $(which perfquery) 2> /dev/null`
 
 if [[ -z ${COLLECTL_OPTIONS} ]]; then
   COLLECTL_OPTIONS="-sCDNfM -omT --dskopts z --cpuopts z -i .1"
